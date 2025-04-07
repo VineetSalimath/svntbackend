@@ -179,6 +179,6 @@ main().catch((err) => {
     console.log(err);
 });
 
-const server = app.listen(8080, () => {
-    console.log(`Example app listening on port 8080`);
+const server = app.listen(3000, () => {
+    console.log(`Example app listening on port 3000`);
 });
