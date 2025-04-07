@@ -11,6 +11,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const app = express();
+const PORT=3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -179,6 +180,6 @@ main().catch((err) => {
     console.log(err);
 });
 
-const server = app.listen(3000, () => {
-    console.log(`Example app listening on port 3000`);
+app.listen(PORT,'0.0.0.0', () => {
+    console.log(`Example app listening on port ${PORT}`);
 });
