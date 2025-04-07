@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for svnt-backend1-fragrant-bird-828 on 2025-04-08T01:29:34+05:30
+# fly.toml app configuration file generated for svnt-backend1-summer-star-9951 on 2025-04-08T02:03:11+05:30
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'svnt-backend1-fragrant-bird-828'
+app = 'svnt-backend1-summer-star-9951'
 primary_region = 'bom'
 
 [build]
