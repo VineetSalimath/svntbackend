@@ -22,7 +22,7 @@ app.use('/api/candidates', candidateRoutes)
 app.use('/admin/api/jobs', jobRoutes)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-const mongoURI = 'mongodb://satvikrajan:Satvik2003@cluster0.3sgwwvu.mongodb.net/svnt?retryWrites=true&w=majority&appName=Cluster0';
+const mongoURI = 'mongodb+srv://satvikrajan:Satvik2003@cluster0.3sgwwvu.mongodb.net/svnt?retryWrites=true&w=majority&appName=Cluster0';
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'uploads/');
