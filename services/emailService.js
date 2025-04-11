@@ -1,10 +1,10 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    service: 'smtp.office365.com',
     auth: {
-        user: 'satvikrajan@gmail.com',
-        pass: 'cwlx qmia fpco ifij',
+        user: 'info@svntech.com',
+        pass: 'bwjqrnwsxeplewpw',
     },
 });
 
@@ -39,7 +39,7 @@ async function sendEmail(req, res) {
 
     const mailOptions = {
         from: `"${senderName}" <${senderEmail}>`,
-        to: 'satvikrajan@gmail.com',
+        to: 'info@svntech.com',
         subject: subject,
         text: `Sender: ${senderName} <${senderEmail}>\n\n${text}\nPhone Number: ${phoneNumber}`,
     };

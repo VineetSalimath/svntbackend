@@ -1,54 +1,61 @@
 const express = require('express');
-const nodemailer = require('nodemailer');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const multer = require('multer');
+const nodemailer = require('nodemailer');
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config();
+
+const Candidate = require('./model/CandidatesModel');
+const JobModel = require('./model/JobModel');
 const adminRoutes = require('./routes/AdminRoutes');
 const candidateRoutes = require('./routes/CandidateRoutes');
 const jobRoutes = require('./routes/JobRoutes');
-const Candidate = require('./model/CandidatesModel');
-const JobModel = require('./model/JobModel');
-const multer = require('multer');
-const fs = require('fs');
-const path = require('path');
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-require("dotenv").config();
-app.use("/api/auth", adminRoutes)
-app.use('/api/candidates', candidateRoutes)
-app.use('/admin/api/jobs', jobRoutes)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Routes
+app.use("/api/auth", adminRoutes);
+app.use('/api/candidates', candidateRoutes);
+app.use('/admin/api/jobs', jobRoutes);
 
-const mongoURI = 'mongodb+srv://satvikrajan:Satvik2003@cluster0.3sgwwvu.mongodb.net/svnt?retryWrites=true&w=majority&appName=Cluster0';
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        cb(null, `${file.originalname}`);
+// Database
+async function connectDB() {
+    try {
+        await mongoose.connect(process.env.MONGO_URI);
+        console.log('DB connected successfully');
+    } catch (err) {
+        console.error('Database connection error:', err);
     }
-});
+}
+connectDB();
 
+// File upload config
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
+
+// Email config
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    service: 'smtp.office365.com',
     auth: {
-        user: 'satvikrajan@gmail.com',
-        pass: 'jhby kkwf bmaz xxom',
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
     },
 });
 
+// Email route
 app.post('/send-email', (req, res) => {
     const { senderName, senderEmail, subject, text, phoneNumber } = req.body;
 
-    if (senderName.length < 4) {
+    if (!senderName || senderName.length < 4) {
         return res.status(400).json({ error: "Name should be greater than 3 characters" });
-    }
-    if (!senderName) {
-        return res.status(400).json({ error: 'Sender name is required' });
     }
     if (!subject || !text) {
         return res.status(400).json({ error: 'Subject and text are required' });
@@ -56,13 +63,13 @@ app.post('/send-email', (req, res) => {
     if (!senderEmail || !validateEmail(senderEmail)) {
         return res.status(400).json({ error: 'Invalid sender email' });
     }
-    if (!phoneNumber && !validatePhone(phoneNumber)) {
+    if (!phoneNumber || !validatePhone(phoneNumber)) {
         return res.status(400).json({ error: 'Invalid phone number' });
     }
 
     const mailOptions = {
         from: `"${senderName}" <${senderEmail}>`,
-        to: 'satvikrajan@gmail.com',
+        to: process.env.RECEIVER_EMAIL,
         subject: subject,
         text: `Sender: ${senderName} <${senderEmail}>\n\n${text}\nPhone Number: ${phoneNumber}`,
     };
@@ -73,20 +80,43 @@ app.post('/send-email', (req, res) => {
             return res.status(500).json({ error: 'Error sending email' });
         }
         console.log('Email sent: ' + info.response);
-        res.status(200).send('Email sent successfully');
+        res.status(200).json({ message: 'Email sent successfully' });
     });
 });
 
-function validateEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-}
+// Form submission route
+app.post('/careers/api/submitForm', upload.single('resume'), async (req, res) => {
+    try {
+        const { name, email, phone, totalExperience, relevantExperience } = req.body;
+        const file = req.file;
 
-function validatePhone(phone) {
-    const phoneRegex = /^\d{10}$/;
-    return phoneRegex.test(phone);
-}
+        if (!file) {
+            return res.status(400).json({ message: 'Resume file is required' });
+        }
 
+        const candidate = new Candidate({
+            name,
+            email,
+            phone,
+            totalExperience,
+            relevantExperience,
+            resume: {
+                data: file.buffer,
+                contentType: file.mimetype,
+                filename: file.originalname,
+            }
+        });
+
+        await candidate.save();
+
+        res.status(201).json({ message: 'Candidate saved successfully', id: candidate._id });
+    } catch (error) {
+        console.error('Error saving candidate:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Fetch all candidates
 app.get('/candidates', async (req, res) => {
     try {
         const candidates = await Candidate.find();
@@ -97,6 +127,7 @@ app.get('/candidates', async (req, res) => {
     }
 });
 
+// Fetch all jobs
 app.get('/api/jobs', async (req, res) => {
     try {
         const jobs = await JobModel.find({});
@@ -106,44 +137,20 @@ app.get('/api/jobs', async (req, res) => {
     }
 });
 
-
-
-app.post('/careers/api/submitForm', upload.single('resume'), async (req, res) => {
-    try {
-        const { name, email, phone, totalExperience, relevantExperience } = req.body;
-        const resumePath = req.file ? req.file.path : null;
-
-        const candidate = new Candidate({
-            name,
-            email,
-            phone,
-            totalExperience,
-            relevantExperience,
-            resumePath,
-        });
-
-        await candidate.save();
-        res.status(201).json({ message: 'Candidate saved successfully' });
-    } catch (error) {
-        console.error('Error saving candidate:', error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
-});
-
+// Delete job
 app.delete('/api/jobs/:id', async (req, res) => {
-    const { id } = req.params;
     try {
-        await JobModel.findByIdAndDelete(id);
+        await JobModel.findByIdAndDelete(req.params.id);
         res.status(200).json({ message: 'Job deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: 'Error deleting job' });
     }
 });
 
+// Delete candidate
 app.delete('/api/candidates/:id', async (req, res) => {
-    const { id } = req.params;
     try {
-        const candidate = await Candidate.findByIdAndDelete(id);
+        const candidate = await Candidate.findByIdAndDelete(req.params.id);
         if (!candidate) {
             return res.status(404).json({ message: 'Candidate not found' });
         }
@@ -154,32 +161,43 @@ app.delete('/api/candidates/:id', async (req, res) => {
     }
 });
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Download resume
+app.get('/api/resume/:id', async (req, res) => {
+    try {
+        const candidateId = req.params.id.trim();
+        const candidate = await Candidate.findById(candidateId);
 
-app.get('/api/resume/:filename', (req, res) => {
-    const filePath = path.join(__dirname, 'uploads', req.params.filename);
+        if (!candidate || !candidate.resume || !candidate.resume.data) {
+            return res.status(404).json({ message: 'Resume not found' });
+        }
 
-    if (fs.existsSync(filePath)) {
-        res.sendFile(filePath);
-    } else {
-        res.status(404).json({ message: 'File not found' });
+        res.set({
+            'Content-Type': candidate.resume.contentType,
+            'Content-Disposition': 'inline'
+            // 'Content-Disposition': `attachment; filename="${candidate.resume.filename}"`,
+        });
+
+        res.send(candidate.resume.data);
+    } catch (error) {
+        console.error('Error fetching resume:', error);
+        res.status(500).json({ message: 'Internal server error' });
     }
 });
 
 
-async function main() {
-    try {
-        await mongoose.connect(mongoURI, {});
-        console.log('DB connected successfully');
-    } catch (err) {
-        console.error('Database connection error:', err);
-    }
+
+// Start server
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+});
+
+// Helper validators
+function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
 }
 
-main().catch((err) => {
-    console.log(err);
-});
-
-app.listen(PORT,'0.0.0.0', () => {
-    console.log(`Example app listening on port ${PORT}`);
-});
+function validatePhone(phone) {
+    const phoneRegex = /^\d{10}$/;
+    return phoneRegex.test(phone);
+}

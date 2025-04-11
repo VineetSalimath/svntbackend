@@ -28,7 +28,15 @@ const CandidateSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    resumePath: String,
+    resume: {
+        data: Buffer,
+        contentType: String,
+        filename: String,
+    },
+    uploadDate: {
+        type: Date,
+        default: Date.now
+    }
 });
 
 module.exports = mongoose.model("Candidate", CandidateSchema);
