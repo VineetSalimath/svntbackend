@@ -43,7 +43,9 @@ const upload = multer({ storage });
 
 // Email config
 const transporter = nodemailer.createTransport({
-    service: 'smtp.office365.com',
+    host: 'smtp.office365.com',
+    port: 587,
+    secure: false,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -51,7 +53,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // Email route
-app.post('/send-email', (req, res) => {
+app.post('/api/auth/send-email', (req, res) => {
     const { senderName, senderEmail, subject, text, phoneNumber } = req.body;
 
     if (!senderName || senderName.length < 4) {
