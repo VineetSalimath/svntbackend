@@ -14,7 +14,7 @@ const candidateRoutes = require('./routes/CandidateRoutes');
 const jobRoutes = require('./routes/JobRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
